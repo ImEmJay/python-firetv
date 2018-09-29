@@ -11,9 +11,11 @@ import re
 from socket import error as socket_error
 
 from adb import adb_commands
+from adb import sign_m2crypto
 from adb.sign_pythonrsa import PythonRSASigner
 from adb.adb_protocol import InvalidChecksumError
 
+import os.path as op
 
 Signer = PythonRSASigner.FromRSAKeyPath
 
@@ -112,10 +114,11 @@ class FireTV:
         """
         try:
             if self.adbkey:
-                signer = Signer(self.adbkey)
-
-                # Connect to the device
-                self._adb = adb_commands.AdbCommands().ConnectDevice(serial=self.host, rsa_keys=[signer])
+                # KitKat+ devices require authentication
+            signer = sign_m2crypto.M2CryptoSigner(op.expanduser('~/.android/adbkey'))
+            # Connect to the device
+            device = adb_commands.AdbCommands()
+            self._adb = device.ConnectDevice(serial=self.host, rsa_keys=[signer])
             else:
                 self._adb = adb_commands.AdbCommands().ConnectDevice(serial=self.host)
         except socket_error as serr:
